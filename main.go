@@ -10,11 +10,6 @@ import (
 	"github.com/diantanjung/wecom/util"
 )
 
-const (
-	// pathDir = "/home/dian/go/src/github.com/diantanjung/wecom/" //local
-	// pathDir = "/home/dian/go/bin/" //production
-
-)
 func main() {
 	pathDir, _ := os.Getwd()
 	config, err := util.LoadConfig(pathDir)
