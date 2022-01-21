@@ -121,10 +121,8 @@ func (server *Server) GetFileContent(ctx *gin.Context) {
 	}
 	file := req.PathStr
 
-	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
-
 	// file
-	filePath := server.config.BinPath + "/" + authPayload.Username + "/" + file
+	filePath :=  "/" + file
 	fileString, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
@@ -154,9 +152,7 @@ func (server *Server) UpdateFileContent(ctx *gin.Context) {
 	}
 	file := req.PathStr
 
-	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
-
-	pathFile := server.config.BinPath + "/" + authPayload.Username + "/" + file
+	pathFile := "/" + file
 
 	err := ioutil.WriteFile(pathFile, []byte(req.FileStr), 0644)
 	if err != nil {
@@ -1026,10 +1022,10 @@ func (server *Server) GetDirContent(ctx *gin.Context) {
 		return
 	}
 
-	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	// authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 
 	// directory path
-	dirPath := server.config.BinPath + "/" + authPayload.Username + "/" + req.PathStr
+	dirPath := "/" + req.PathStr
 	dirs, err := ioutil.ReadDir(dirPath)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
@@ -1063,7 +1059,7 @@ func (server *Server) RunCommand(ctx *gin.Context) {
 	}
 
 	// file
-	fullPath := server.config.BinPath + "/" + req.Username + "/" + req.PathStr
+	fullPath := "/" + req.PathStr
 	runnerArr := strings.Split(fullPath, "/")
 	runnerDir := strings.Join(runnerArr[:(len(runnerArr)-1)], "/")
 	if fileInfo, err := os.Stat(fullPath); err != nil || fileInfo.IsDir() {
@@ -1126,7 +1122,8 @@ func (server *Server) GetDirFileContent(ctx *gin.Context) {
 	}
 
 	// file
-	filePath := server.config.BinPath + "/" + authPayload.Username + "/" + file
+	// filePath := server.config.BinPath + "/" + authPayload.Username + "/" + file
+	filePath := "/" + file
 
 	info, err := os.Stat(filePath)
 	if os.IsNotExist(err) {
