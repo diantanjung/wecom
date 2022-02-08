@@ -54,6 +54,7 @@ func (server *Server) setupRouter() {
 	router.Use(server.CORSMiddleware())
 
 	router.POST("/users/login", server.loginUser)
+	router.POST("/users/login-google", server.loginGoogle)
 	// router.GET("/ws", server.WebSocket)
 	router.GET("/ws2/:username", server.WebSocket2)
 
@@ -93,7 +94,7 @@ func (server *Server) setupRouter() {
 
 // Start runs the HTTP server on a specific address.
 func (server *Server) Start(address string) error {
-	return server.router.Run(address)
+	return server.router.RunTLS(address, "/home/dian/certs/localhost.crt", "/home/dian/certs/localhost.key")
 }
 
 func errorResponse(err error) gin.H {

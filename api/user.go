@@ -3,16 +3,24 @@ package api
 import (
 	"database/sql"
 	"errors"
-	"github.com/diantanjung/wecom/token"
 	"net/http"
 	"os/exec"
 	"time"
+
+	"github.com/diantanjung/wecom/token"
 
 	db "github.com/diantanjung/wecom/db/sqlc"
 	"github.com/diantanjung/wecom/util"
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
+	"google.golang.org/api/oauth2/v2"
 )
+
+// var (
+// 	googleOauthConfig *oauth2.Config
+// 	// TODO: randomize it
+// 	oauthStateString = "pseudo-random"
+// )
 
 type createUserRequest struct {
 	Username string `json:"username" binding:"required,alphanum"`
@@ -176,6 +184,55 @@ func (server *Server) loginUser(ctx *gin.Context) {
 	//	ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 	//	return
 	//}
+
+	ctx.JSON(http.StatusOK, rsp)
+}
+
+type loginGoogleRequest struct {
+	IdToken string `json:"id_token" binding:"required"`
+}
+
+type loginGoogleResponse struct {
+	AccessToken string       `json:"access_token"`
+	User        userResponse `json:"user"`
+}
+
+func (server *Server) loginGoogle(ctx *gin.Context) {
+	// googleOauthConfig = &oauth2.Config{
+	// 	RedirectURL:  "http://localhost:3000/callback",
+	// 	ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+	// 	ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+	// 	Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
+	// 	Endpoint:     google.Endpoint,
+	// }
+
+	// url := googleOauthConfig.AuthCodeURL(oauthStateString)
+	// ctx.Redirect(http.StatusTemporaryRedirect, url)
+
+	var req loginGoogleRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	httpClient := &http.Client{}
+	oauth2Service, err := oauth2.New(httpClient)
+	tokenInfoCall := oauth2Service.Tokeninfo()
+	tokenInfoCall.IdToken(req.IdToken)
+	tokenInfo, err := tokenInfoCall.Do()
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	userLogin := db.User{
+		Username: tokenInfo.Email,
+	}
+
+	rsp := loginUserResponse{
+		AccessToken: req.IdToken,
+		User:        newUserResponse(userLogin),
+	}
 
 	ctx.JSON(http.StatusOK, rsp)
 }
