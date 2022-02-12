@@ -58,7 +58,6 @@ func (server *Server) setupRouter() {
 	// router.GET("/ws", server.WebSocket)
 	router.GET("/ws2/:username", server.WebSocket2)
 
-
 	router.POST("/run", server.RunCommand)
 
 	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
@@ -94,7 +93,7 @@ func (server *Server) setupRouter() {
 
 // Start runs the HTTP server on a specific address.
 func (server *Server) Start(address string) error {
-	return server.router.RunTLS(address, "/certs/bilang.crt", "/certs/bilang.key")
+	return server.router.Run(address)
 }
 
 func errorResponse(err error) gin.H {
