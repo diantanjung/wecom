@@ -45,7 +45,7 @@ type TTYSize struct {
 func (server *Server) WebSocket2(ctx *gin.Context) {
 	// func GetHandler(opts HandlerOpts) func(http.ResponseWriter, *http.Request) {
 	opts := HandlerOpts{
-		AllowedHostnames:     []string{"localhost", server.config.BaseUrl},
+		AllowedHostnames:     []string{"localhost", "bilang.io"},
 		Arguments:            []string{},
 		Command:              "/bin/bash",
 		ConnectionErrorLimit: 10,
