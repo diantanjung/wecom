@@ -235,13 +235,13 @@ func (server *Server) loginGoogle(ctx *gin.Context) {
 			userArr := strings.Split(tokenInfo.Email, "@")
 			username = userArr[0] + "-at-gmailcom"
 
-			// arg := db.CreateUserParams{
-			// 	Username: username,
-			// 	Password: "-",
-			// 	Name:     userArr[0],
-			// 	Email:    tokenInfo.Email,
-			// }
-			// server.querier.CreateUser(ctx, arg)
+			arg := db.CreateUserParams{
+				Username: username,
+				Password: "-",
+				Name:     userArr[0],
+				Email:    tokenInfo.Email,
+			}
+			server.querier.CreateUser(ctx, arg)
 
 			//add user if not available in server
 			exec.Command("useradd", "-m", username).Run()
