@@ -12,6 +12,7 @@ type Querier interface {
 	CreateUserDir(ctx context.Context, arg CreateUserDirParams) (Directory, error)
 	DeleteUserDir(ctx context.Context, arg DeleteUserDirParams) error
 	GetUser(ctx context.Context, username string) (User, error)
+	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserDirs(ctx context.Context, userID int64) ([]Directory, error)
 }
 

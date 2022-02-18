@@ -78,6 +78,7 @@ func (server *Server) WebSocket2(ctx *gin.Context) {
 	fmt.Println("starting new tty using command '%s' with arguments ['%s']...", terminal, strings.Join(args, "', '"))
 	// cmd := exec.Command(terminal, args...)
 	cmd := exec.Command("schroot", "-c", "xenial", "-u", username)
+	// cmd := exec.Command("/usr/bin/zsh", "-c","schroot -c xenial -u " + username)
 	// sudo schroot -c xenial -u dian
 	// cmd := exec.Command("/bin/bash")
 	cmd.Dir = "/home/" + username
@@ -106,6 +107,14 @@ func (server *Server) WebSocket2(ctx *gin.Context) {
 			fmt.Println("failed to close webscoket connection: %s", err)
 		}
 	}()
+
+	//start zsh
+	// datazsh := []byte("zsh")
+	// bytesZsh, err := tty.Write(datazsh)
+	// if err != nil {
+	// 	fmt.Println(fmt.Sprintf("Start ZSH : failed to write %v bytes to tty: %s", len(datazsh), err))
+	// }
+	// fmt.Println("%v Start ZSH : bytes written to tty...", bytesZsh)
 
 	var connectionClosed bool
 	var waiter sync.WaitGroup

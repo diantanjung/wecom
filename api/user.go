@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/diantanjung/wecom/token"
@@ -225,8 +227,55 @@ func (server *Server) loginGoogle(ctx *gin.Context) {
 		return
 	}
 
+	user, err := server.querier.GetUserByEmail(ctx, tokenInfo.Email)
+	username := user.Username
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			userArr := strings.Split(tokenInfo.Email, "@")
+			username = userArr[0] + "-at-gmailcom"
+
+			// arg := db.CreateUserParams{
+			// 	Username: username,
+			// 	Password: "-",
+			// 	Name:     userArr[0],
+			// 	Email:    tokenInfo.Email,
+			// }
+			// server.querier.CreateUser(ctx, arg)
+
+			//add user if not available in server
+			exec.Command("useradd", "-m", username).Run()
+			exec.Command("cp", "-r", "/opt/.oh-my-zsh", "/home/" + username + "/.oh-my-zsh").Run()
+			exec.Command("chown","-R" , username + ":" +username, "/home/" + username + "/.oh-my-zsh").Run()
+
+			exec.Command("cp", "-r", "/opt/.oh-my-zsh/templates/zshrc.zsh-template", "/home/" + username + "/.zshrc").Run()
+			exec.Command("chown","-R" , username + ":" +username, "/home/" + username + "/.zshrc").Run()
+
+			exec.Command("cp", "-r", "/opt/powerlevel10k", "/home/" + username + "/.powerlevel10k").Run()
+			exec.Command("chown","-R" , username + ":" +username, "/home/" + username + "/.powerlevel10k").Run()
+			// exec.Command("echo", "'source ~/powerlevel10k/powerlevel10k.zsh-theme'", ">>~/.zshrc").Run()
+			// echo 'source ~/powerlevel10k/powerlevel10k.zsh-theme' >>~/.zshrc
+
+			//Append powerlevel theme setting
+			file, _ := os.OpenFile("/home/" + username + "/.zshrc", os.O_APPEND|os.O_WRONLY, 0644)
+			defer file.Close()
+			file.WriteString("source ~/.powerlevel10k/powerlevel10k.zsh-theme")
+
+			exec.Command("usermod", "--shell", "/usr/bin/zsh", username).Run()
+
+
+			// exec.Command("ln", "-s", "/home/dian/.oh-my-zsh", "/home/" + username + "/.oh-my-zsh").Run()
+			// exec.Command("ln", "-s", "/home/dian/.zshrc", "/home/" + username + "/.zshrc").Run()
+			// exec.Command("sh", "-c", "$(wget -O- https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)").Run()
+			
+		} else {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
+	}
+
 	userLogin := db.User{
-		Username: tokenInfo.Email,
+		Username: username,
 	}
 
 	rsp := loginUserResponse{
