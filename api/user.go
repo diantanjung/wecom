@@ -227,16 +227,15 @@ func (server *Server) loginGoogle(ctx *gin.Context) {
 		return
 	}
 
-	user, err := server.querier.GetUserByEmail(ctx, tokenInfo.Email)
-	username := user.Username
+	_, err = server.querier.GetUserByEmail(ctx, tokenInfo.Email)
+	username := tokenInfo.Email
 
 	if err != nil {
 		if err == sql.ErrNoRows {
 			userArr := strings.Split(tokenInfo.Email, "@")
-			username = userArr[0] + "-at-gmailcom"
 
 			arg := db.CreateUserParams{
-				Username: username,
+				Username: tokenInfo.Email,
 				Password: "-",
 				Name:     userArr[0],
 				Email:    tokenInfo.Email,
@@ -259,7 +258,7 @@ func (server *Server) loginGoogle(ctx *gin.Context) {
 			//Append powerlevel theme setting
 			file, _ := os.OpenFile("/home/" + username + "/.zshrc", os.O_APPEND|os.O_WRONLY, 0644)
 			defer file.Close()
-			file.WriteString("source ~/.powerlevel10k/powerlevel10k.zsh-theme")
+			file.WriteString("source ~/.powerlevel10k/powerlevel10k.zsh-theme\nalias ls='colorls'\nalias logout='quit'\nsudo (){echo sudo: command not found}")
 
 			exec.Command("usermod", "--shell", "/usr/bin/zsh", username).Run()
 
