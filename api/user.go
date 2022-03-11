@@ -244,6 +244,7 @@ func (server *Server) loginGoogle(ctx *gin.Context) {
 
 			//add user if not available in server
 			exec.Command("useradd", "-m", username).Run()
+			exec.Command("chmod", "750", "/home/" + username).Run()
 			exec.Command("cp", "-r", "/opt/.oh-my-zsh", "/home/" + username + "/.oh-my-zsh").Run()
 			exec.Command("chown","-R" , username + ":" +username, "/home/" + username + "/.oh-my-zsh").Run()
 
