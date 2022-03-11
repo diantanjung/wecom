@@ -191,7 +191,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 }
 
 type loginGoogleRequest struct {
-	IdToken string `json:"id_token" binding:"required"`
+	IdToken string `json:"credential" binding:"required"`
 }
 
 type loginGoogleResponse struct {
