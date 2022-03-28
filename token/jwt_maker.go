@@ -1,8 +1,12 @@
 package token
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -35,28 +39,94 @@ func (maker *JWTMaker) CreateToken(userID int64, username string, duration time.
 }
 
 // VerifyToken checks if the token is valid or not
-func (maker *JWTMaker) VerifyToken(token string) (*Payload, error) {
-	keyFunc := func(token *jwt.Token) (interface{}, error) {
-		_, ok := token.Method.(*jwt.SigningMethodHMAC)
-		if !ok {
-			return nil, ErrInvalidToken
-		}
-		return []byte(maker.secretKey), nil
-	}
+// func (maker *JWTMaker) VerifyToken(token string) (*Payload, error) {
+// 	keyFunc := func(token *jwt.Token) (interface{}, error) {
+// 		_, ok := token.Method.(*jwt.SigningMethodHMAC)
+// 		if !ok {
+// 			return nil, ErrInvalidToken
+// 		}
+// 		return []byte(maker.secretKey), nil
+// 	}
 
-	jwtToken, err := jwt.ParseWithClaims(token, &Payload{}, keyFunc)
+// 	jwtToken, err := jwt.ParseWithClaims(token, &Payload{}, keyFunc)
+// 	if err != nil {
+// 		verr, ok := err.(*jwt.ValidationError)
+// 		if ok && errors.Is(verr.Inner, ErrExpiredToken) {
+// 			return nil, ErrExpiredToken
+// 		}
+// 		return nil, ErrInvalidToken
+// 	}
+
+// 	payload, ok := jwtToken.Claims.(*Payload)
+// 	if !ok {
+// 		return nil, ErrInvalidToken
+// 	}
+
+// 	return payload, nil
+// }
+
+func (maker *JWTMaker) VerifyToken(tokenString string) (*Payload, error) {
+	claimsStruct := Payload{}
+
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		&claimsStruct,
+		func(token *jwt.Token) (interface{}, error) {
+			pem, err := getGooglePublicKey(fmt.Sprintf("%s", token.Header["kid"]))
+			if err != nil {
+				return nil, err
+			}
+			key, err := jwt.ParseRSAPublicKeyFromPEM([]byte(pem))
+			if err != nil {
+				return nil, err
+			}
+			return key, nil
+		},
+	)
 	if err != nil {
-		verr, ok := err.(*jwt.ValidationError)
-		if ok && errors.Is(verr.Inner, ErrExpiredToken) {
-			return nil, ErrExpiredToken
-		}
-		return nil, ErrInvalidToken
+		return nil, err
 	}
 
-	payload, ok := jwtToken.Claims.(*Payload)
+	claims, ok := token.Claims.(*Payload)
 	if !ok {
-		return nil, ErrInvalidToken
+		return nil, errors.New("Invalid Google JWT")
 	}
 
-	return payload, nil
+	if claims.Issuer != "accounts.google.com" && claims.Issuer != "https://accounts.google.com" {
+		return nil, errors.New("iss is invalid")
+	}
+
+	
+
+	if claims.Audience != os.Getenv("GOOGLE_CLIENT_ID") {
+		return nil, errors.New("aud is invalid")
+	}
+
+	if claims.ExpiresAt < time.Now().UTC().Unix() {
+		return nil, errors.New("JWT is expired")
+	}
+
+	return claims, nil
+}
+
+func getGooglePublicKey(keyID string) (string, error) {
+	resp, err := http.Get("https://www.googleapis.com/oauth2/v1/certs")
+	if err != nil {
+		return "", err
+	}
+	dat, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	myResp := map[string]string{}
+	err = json.Unmarshal(dat, &myResp)
+	if err != nil {
+		return "", err
+	}
+	key, ok := myResp[keyID]
+	if !ok {
+		return "", errors.New("key not found")
+	}
+	return key, nil
 }

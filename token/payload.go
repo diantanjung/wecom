@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 )
 
@@ -20,6 +21,12 @@ type Payload struct {
 	Username  string    `json:"username"`
 	IssuedAt  time.Time `json:"issued_at"`
 	ExpiredAt time.Time `json:"expired_at"`
+
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"email_verified"`
+	FirstName     string `json:"given_name"`
+	LastName      string `json:"family_name"`
+	jwt.StandardClaims
 }
 
 // NewPayload creates a new token payload with a specific username and duration
@@ -41,7 +48,8 @@ func NewPayload(userId int64, username string, duration time.Duration) (*Payload
 
 // Valid checks if the token payload is valid or not
 func (payload *Payload) Valid() error {
-	if time.Now().After(payload.ExpiredAt) {
+	tm := time.Unix(payload.StandardClaims.ExpiresAt, 0)
+	if time.Now().After(tm) {
 		return ErrExpiredToken
 	}
 	return nil

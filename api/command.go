@@ -1114,13 +1114,13 @@ func (server *Server) GetDirFileContent(ctx *gin.Context) {
 
 	file := req.PathStr
 
-	// authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 
-	// if authPayload.Username != req.Username {
-	// 	err := errors.New("User not authorized to access file/directory.")
-	// 	ctx.JSON(http.StatusBadRequest, errorResponse(err))
-	// 	return
-	// }
+	if authPayload.Email != req.Username {
+		err := errors.New("User not authorized to access file/directory.")
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
 	// file
 	// filePath := server.config.BinPath + "/" + authPayload.Username + "/" + file
