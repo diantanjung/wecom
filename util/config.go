@@ -1,27 +1,22 @@
 package util
 
 import (
-	"github.com/joho/godotenv"
 	"os"
 	"path/filepath"
-	"time"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	DBHost              string
-	DBDriver            string
-	DBUser              string
-	DBPassword          string
-	DBName              string
-	DBPort              string
-	BinPath             string
-	ViewPath            string
-	BaseUrl             string
-	AccessTokenDuration time.Duration
-	TokenSymmetricKey   string
-	FeUrl               string
-	CargoBinPath        string
-	GoBinPath           string
+	DBHost            string
+	DBDriver          string
+	DBUser            string
+	DBPassword        string
+	DBName            string
+	DBPort            string
+	BaseUrl           string
+	TokenSymmetricKey string
+	FeUrl             string
 }
 
 func LoadConfig(path string) (config Config, err error) {
@@ -37,14 +32,9 @@ func LoadConfig(path string) (config Config, err error) {
 	config.DBPassword = os.Getenv("DB_PASSWORD")
 	config.DBName = os.Getenv("DB_NAME")
 	config.DBPort = os.Getenv("DB_PORT")
-	config.BinPath = os.Getenv("BIN_PATH")
-	config.ViewPath = os.Getenv("VIEW_PATH")
 	config.BaseUrl = os.Getenv("BASE_URL")
-	config.AccessTokenDuration, err = time.ParseDuration(os.Getenv("ACCESS_TOKEN_DURATION"))
 	config.TokenSymmetricKey = os.Getenv("TOKEN_SYMMETRIC_KEY")
 	config.FeUrl = os.Getenv("FE_URL")
-	config.CargoBinPath = os.Getenv("CARGO_BIN_PATH")
-	config.GoBinPath = os.Getenv("GO_BIN_PATH")
 
 	return
 }

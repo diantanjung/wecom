@@ -53,40 +53,18 @@ func (server *Server) setupRouter() {
 
 	router.Use(server.CORSMiddleware())
 
-	router.POST("/users/login", server.loginUser)
 	router.POST("/users/login-google", server.loginGoogle)
-	// router.GET("/ws", server.WebSocket)
 	router.GET("/ws2/:username", server.WebSocket2)
 
 	router.POST("/run", server.RunCommand)
 
 	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
-	authRoutes.POST("/users", server.createUser)
 	authRoutes.GET("/user", server.getUser)
-
-	authRoutes.POST("/directory", server.CreateUserDir)
-	authRoutes.GET("/directory", server.GetUserDirs)
-	authRoutes.DELETE("/directory", server.DeleteUserDirs)
-
-	authRoutes.GET("/commands", server.GetCommands)
-	authRoutes.POST("/command/:dir/:cmd", server.CreateCommand)
-	authRoutes.GET("/command/:dir/:cmd", server.GetSourceCode)
-	authRoutes.PATCH("/command/:dir/:cmd", server.UpdateSourceCode)
-	authRoutes.DELETE("/command/:dir/:cmd", server.DeleteCommand)
-	authRoutes.GET("/exe/:dir/:cmd", server.ExeCommand)
 
 	authRoutes.POST("/open", server.GetFileContent)
 	authRoutes.PATCH("/open", server.UpdateFileContent)
-	//authRoutes.GET("/terminal/:dir/:cmd/:exe", server.Terminal)
-
-	authRoutes.POST("/opendir", server.GetDirContent)
 
 	authRoutes.POST("/opendirfile", server.GetDirFileContent)
-
-	authRoutes.POST("/terminal", server.Terminal)
-	authRoutes.POST("/autocomplete", server.AutoComplete)
-
-	//authRoutes.POST("/ws", server.WebSocket)
 
 	server.router = router
 }
