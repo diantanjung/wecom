@@ -235,3 +235,39 @@ func (server *Server) GetDirFileContent(ctx *gin.Context) {
 	}
 	ctx.JSON(http.StatusOK, res)
 }
+
+
+type getDirContentRequest struct {
+	PathStr string `json:"path_str" binding:"required"`
+}
+
+func (server *Server) GetDirContent(ctx *gin.Context) {
+	var req getDirContentRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+
+	// directory path
+	dirPath := "/" + req.PathStr
+	dirs, err := ioutil.ReadDir(dirPath)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+	}
+
+	var res []dirContent
+	const layoutTime = "2006-01-02 15:04:05"
+	for id, dir := range dirs {
+		res = append(res, dirContent{
+			Id:       id,
+			Filename: dir.Name(),
+			IsDir:    dir.IsDir(),
+			Size:     dir.Size(),
+			Path:     req.PathStr + "/" + dir.Name(),
+			ModTime:  dir.ModTime().Format(layoutTime),
+		})
+	}
+	ctx.JSON(http.StatusOK, res)
+}

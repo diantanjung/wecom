@@ -65,6 +65,7 @@ func (server *Server) setupRouter() {
 	authRoutes.PATCH("/open", server.UpdateFileContent)
 
 	authRoutes.POST("/opendirfile", server.GetDirFileContent)
+	authRoutes.POST("/opendir", server.GetDirContent)
 
 	server.router = router
 }
