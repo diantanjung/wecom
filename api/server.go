@@ -58,6 +58,10 @@ func (server *Server) setupRouter() {
 
 	router.POST("/run", server.RunCommand)
 
+	// for guest
+	router.POST("/gopendirfile", server.GetDirFileContent)
+	router.POST("/gopendir", server.GetDirContent)
+
 	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
 	authRoutes.GET("/user", server.getUser)
 
