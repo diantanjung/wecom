@@ -83,13 +83,17 @@ func (server *Server) loginGoogle(ctx *gin.Context) {
 
 			exec.Command("cp", "-r", "/opt/powerlevel10k", "/home/"+username+"/.powerlevel10k").Run()
 			exec.Command("chown", "-R", username+":"+username, "/home/"+username+"/.powerlevel10k").Run()
+
+			exec.Command("cp", "-r", "/opt/.p10k.zsh", "/home/"+username+"/.p10k.zsh").Run()
+			exec.Command("chown", "-R", username+":"+username, "/home/"+username+"/.p10k.zsh").Run()
+
 			// exec.Command("echo", "'source ~/powerlevel10k/powerlevel10k.zsh-theme'", ">>~/.zshrc").Run()
 			// echo 'source ~/powerlevel10k/powerlevel10k.zsh-theme' >>~/.zshrc
 
 			//Append powerlevel theme setting
 			file, _ := os.OpenFile("/home/"+username+"/.zshrc", os.O_APPEND|os.O_WRONLY, 0644)
 			defer file.Close()
-			file.WriteString("source ~/.powerlevel10k/powerlevel10k.zsh-theme\nalias ls='colorls'\nalias logout='quit'\nsudo (){echo sudo: command not found}")
+			file.WriteString("source ~/.powerlevel10k/powerlevel10k.zsh-theme\nalias ls='colorls'\nalias logout='quit'\nsudo (){echo sudo: command not found}\n[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh")
 
 			exec.Command("usermod", "--shell", "/usr/bin/zsh", username).Run()
 
