@@ -62,11 +62,13 @@ func (server *Server) setupRouter() {
 	router.POST("/gopendirfile", server.GetDirFileContent)
 	router.POST("/gopendir", server.GetDirContent)
 
+	router.PATCH("/open", server.UpdateFileContent)
+
 	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
 	authRoutes.GET("/user", server.getUser)
 
 	authRoutes.POST("/open", server.GetFileContent)
-	authRoutes.PATCH("/open", server.UpdateFileContent)
+	
 
 	authRoutes.POST("/opendirfile", server.GetDirFileContent)
 	authRoutes.POST("/opendir", server.GetDirContent)
