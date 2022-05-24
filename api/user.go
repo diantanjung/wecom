@@ -97,7 +97,7 @@ func (server *Server) loginGoogle(ctx *gin.Context) {
 			//Append powerlevel theme setting
 			file, _ := os.OpenFile("/home/"+username+"/.zshrc", os.O_APPEND|os.O_WRONLY, 0644)
 			defer file.Close()
-			file.WriteString("source ~/.powerlevel10k/powerlevel10k.zsh-theme\nalias ls='colorls'\nalias logout='quit'\nsudo (){echo sudo: command not found}\nexport PATH=$PATH:/usr/local/go/bin\n[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh\nsource $HOME/.cargo/env\nexport RUSTUP_HOME=/nfs/rust/rustup\nexport PATH=${PATH}:/nfs/rust/cargo/bin\nexport PATH=${PATH}:/usr/racket/bin")
+			file.WriteString("source ~/.powerlevel10k/powerlevel10k.zsh-theme\nalias ls='colorls'\nalias logout='quit'\nsudo (){echo sudo: command not found}\nexport PATH=$PATH:/usr/local/go/bin\n[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh\nexport RUSTUP_HOME=/nfs/rust/rustup\nexport PATH=${PATH}:/nfs/rust/cargo/bin\nexport PATH=${PATH}:/usr/racket/bin")
 
 			exec.Command("usermod", "--shell", "/usr/bin/zsh", username).Run()
 
