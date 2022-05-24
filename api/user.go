@@ -87,8 +87,9 @@ func (server *Server) loginGoogle(ctx *gin.Context) {
 			exec.Command("cp", "-r", "/opt/.p10k.zsh", "/home/"+username+"/.p10k.zsh").Run()
 			exec.Command("chown", "-R", username+":"+username, "/home/"+username+"/.p10k.zsh").Run()
 
-			exec.Command("cp", "-r", "/opt/rustup-init", "/home/"+username+"/rustup-init").Run()
-			exec.Command("sudo", "-u", username, "/home/"+username+"/rustup-init", "-y").Run()
+			// install rust 
+			// exec.Command("cp", "-r", "/opt/rustup-init", "/home/"+username+"/rustup-init").Run()
+			// exec.Command("sudo", "-u", username, "/home/"+username+"/rustup-init", "-y").Run()
 
 			// exec.Command("echo", "'source ~/powerlevel10k/powerlevel10k.zsh-theme'", ">>~/.zshrc").Run()
 			// echo 'source ~/powerlevel10k/powerlevel10k.zsh-theme' >>~/.zshrc
@@ -96,11 +97,12 @@ func (server *Server) loginGoogle(ctx *gin.Context) {
 			//Append powerlevel theme setting
 			file, _ := os.OpenFile("/home/"+username+"/.zshrc", os.O_APPEND|os.O_WRONLY, 0644)
 			defer file.Close()
-			file.WriteString("source ~/.powerlevel10k/powerlevel10k.zsh-theme\nalias ls='colorls'\nalias logout='quit'\nsudo (){echo sudo: command not found}\nexport PATH=$PATH:/usr/local/go/bin\n[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh\nsource $HOME/.cargo/env")
+			file.WriteString("source ~/.powerlevel10k/powerlevel10k.zsh-theme\nalias ls='colorls'\nalias logout='quit'\nsudo (){echo sudo: command not found}\nexport PATH=$PATH:/usr/local/go/bin\n[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh\nsource $HOME/.cargo/env\nexport RUSTUP_HOME=/nfs/rust/rustup\nexport PATH=${PATH}:/nfs/rust/cargo/bin")
 
 			exec.Command("usermod", "--shell", "/usr/bin/zsh", username).Run()
 
-			exec.Command("rm", "/home/"+username+"/rustup-init").Run()
+			// delete rust 
+			// exec.Command("rm", "/home/"+username+"/rustup-init").Run()
 
 			// exec.Command("ln", "-s", "/home/dian/.oh-my-zsh", "/home/" + username + "/.oh-my-zsh").Run()
 			// exec.Command("ln", "-s", "/home/dian/.zshrc", "/home/" + username + "/.zshrc").Run()
