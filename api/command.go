@@ -220,7 +220,7 @@ func (server *Server) RunFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
-	// defer os.Remove(testFileName)
+	defer os.Remove(testFileName)
 
 	msg, err := runFile(testRandomName, testFileName, fileDir)
 	if err != nil {
