@@ -184,22 +184,22 @@ func (server *Server) RunFunc(ctx *gin.Context) {
 		return
 	}
 
-	args:=make(map[string]string)
+	args := make(map[string]string)
 	json.Unmarshal([]byte(req.Args), &args)
 
 	argsStr := ""
-	
+
 	for _, value := range args {
 		if _, err := strconv.Atoi(value); err != nil {
-			argsStr += "\"" +value + "\","
-		}else{
+			argsStr += "\"" + value + "\","
+		} else {
 			argsStr += value + ","
 		}
-    }
+	}
 
 	if last := len(argsStr) - 1; last >= 0 && argsStr[last] == ',' {
-        argsStr = argsStr[:last]
-    }
+		argsStr = argsStr[:last]
+	}
 
 	fileArr := strings.Split(req.PathStr, "/")
 	fileDir := "/" + strings.Join(fileArr[:(len(fileArr)-1)], "/") + "/"
@@ -210,7 +210,7 @@ func (server *Server) RunFunc(ctx *gin.Context) {
 		return
 	}
 
-	functionCall := fileArr[(len(fileArr)-1)] + "("+ argsStr +")"
+	functionCall := fileArr[(len(fileArr)-1)] + "(" + argsStr + ")"
 
 	testRandomName := randString(10)
 	testFileName := fileDir + testRandomName + "_test.go"
@@ -220,7 +220,7 @@ func (server *Server) RunFunc(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
-	defer os.Remove(testFileName)
+	// defer os.Remove(testFileName)
 
 	msg, err := runFile(testRandomName, testFileName, fileDir)
 	if err != nil {
@@ -229,8 +229,8 @@ func (server *Server) RunFunc(ctx *gin.Context) {
 	}
 
 	res := commandResponse{
-		Path: 		functionCall,
-		Message: 	msg,
+		Path:    functionCall,
+		Message: msg,
 	}
 
 	ctx.JSON(http.StatusOK, res)
@@ -288,6 +288,7 @@ func extractFilePackage(filepath string) (string, error) {
 }
 
 func extractPackage(dirPath string) (string, error) {
+
 	dirFiles, err := ioutil.ReadDir(dirPath)
 	if err != nil {
 		return "", err
@@ -307,9 +308,10 @@ func extractPackage(dirPath string) (string, error) {
 			return "", err
 		}
 	}
+
 	packageNames := make(map[string]bool)
 	for _, file := range goFiles {
-		packageName, err := extractFilePackage(file)
+		packageName, err := extractFilePackage(dirPath + file)
 		if err != nil {
 			return "", err
 		}
@@ -354,11 +356,18 @@ func runFile(testname, filename, testFileDir string) (string, error) {
 		fmt.Println("11 : " + stdout)
 		return "", err
 	} else if err != nil {
-		stdout = strings.Join(stdoutLines[:len(stdoutLines)-2], "\n")
-		err = errors.New(stdout)
+		stdout2 := strings.Join(stdoutLines[:len(stdoutLines)-2], "\n")
+		if len(stdout2) > 0 {
+			err = errors.New(stdout2)
+		}else{
+			err = errors.New(stdout)
+		}
 		return stdout, err
 	} else {
-		stdout = strings.Join(stdoutLines[:len(stdoutLines)-3], "\n")
+		stdout3 := strings.Join(stdoutLines[:len(stdoutLines)-3], "\n")
+		if len(stdout3) > 0 {
+			stdout = stdout3
+		}
 		return stdout, err
 	}
 }
