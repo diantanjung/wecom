@@ -57,6 +57,7 @@ func (server *Server) setupRouter() {
 	router.GET("/ws2/:username", server.WebSocket2)
 
 	router.POST("/run", server.RunCommand)
+	router.GET("/runfunc", server.RunFunc)
 
 	// for guest
 	router.POST("/gopendirfile", server.GetDirFileContent)
@@ -68,7 +69,6 @@ func (server *Server) setupRouter() {
 	authRoutes.GET("/user", server.getUser)
 
 	authRoutes.POST("/open", server.GetFileContent)
-	
 
 	authRoutes.POST("/opendirfile", server.GetDirFileContent)
 	authRoutes.POST("/opendir", server.GetDirContent)
