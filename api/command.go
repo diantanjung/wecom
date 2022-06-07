@@ -346,7 +346,7 @@ func generateAndFmtFile(testFileName, testFileDir, fileContent string) error {
 }
 
 func runFile(testname, filename, testFileDir string) (string, error) {
-	cmd := exec.Command("go", "test", "--run", testname)
+	cmd := exec.Command("/usr/local/go/bin/go", "test", "--run", testname)
 	cmd.Dir = testFileDir
 	output, err := cmd.CombinedOutput()
 	stdout := string(output)
