@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -187,9 +186,38 @@ func (server *Server) RunFunc(ctx *gin.Context) {
 	args := make(map[string]string)
 	json.Unmarshal([]byte(req.Args), &args)
 
-	argsStr := ""
+	fileArr := strings.Split(req.PathStr, "/")
+	fileDir := "/" + strings.Join(fileArr[:(len(fileArr)-1)], "/") + "/"
 
-	for _, value := range args {
+	packageName, filePath, err := extractPackage(fileDir)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	paramFunc, err := extractFuncDef(filePath, fileArr[(len(fileArr)-1)])
+	fmt.Println("func param : ")
+	fmt.Println(paramFunc)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	if len(args) != len(paramFunc) {
+		err = errors.New("Not enough arguments in call to function.")
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	argsStr := ""
+	for _, v := range paramFunc {
+		fmt.Println(v)
+		value, ok := args[v]
+		if !ok {
+			err = errors.New("Not enough arguments in call to function")
+			ctx.JSON(http.StatusBadRequest, errorResponse(err))
+			return
+		}
 		if _, err := strconv.Atoi(value); err != nil {
 			argsStr += "\"" + value + "\","
 		} else {
@@ -201,16 +229,9 @@ func (server *Server) RunFunc(ctx *gin.Context) {
 		argsStr = argsStr[:last]
 	}
 
-	fileArr := strings.Split(req.PathStr, "/")
-	fileDir := "/" + strings.Join(fileArr[:(len(fileArr)-1)], "/") + "/"
-
-	packageName, err := extractPackage(fileDir)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
-
 	functionCall := fileArr[(len(fileArr)-1)] + "(" + argsStr + ")"
+
+	fmt.Println("args string : " + argsStr)
 
 	testRandomName := randString(10)
 	testFileName := fileDir + testRandomName + "_test.go"
@@ -261,6 +282,43 @@ func randString(length int) string {
 	return ret
 }
 
+func extractFuncDef(filepath, funcName string) ([]string, error) {
+	regex := regexp.MustCompile(funcName + " *\\((.*)\\).*$")
+	fh, err := os.Open(filepath)
+	f := bufio.NewReader(fh)
+
+	if err != nil {
+		return nil, err
+	}
+	result := make([]string, 0)
+	defer fh.Close()
+
+	buf := make([]byte, 1024)
+	var matchStr = ""
+	for {
+		buf, _, err = f.ReadLine()
+		if err != nil {
+			break
+		}
+		s := string(buf)
+		match := regex.FindStringSubmatch(s)
+		if len(match) > 0 {
+			matchStr = match[1]
+		}
+	}
+
+	splitArr := strings.Split(matchStr, ",")
+	if len(splitArr) > 0 {
+		for _, v := range splitArr {
+			temp := strings.Split(strings.TrimSpace(v), " ")[0]
+			// result[temp] = ""
+			result = append(result, temp)
+		}
+
+	}
+	return result, nil
+}
+
 func extractFilePackage(filepath string) (string, error) {
 	regex, err := regexp.Compile("^ *package (.*)$")
 	if err != nil {
@@ -287,11 +345,11 @@ func extractFilePackage(filepath string) (string, error) {
 	}
 }
 
-func extractPackage(dirPath string) (string, error) {
+func extractPackage(dirPath string) (string, string, error) {
 
 	dirFiles, err := ioutil.ReadDir(dirPath)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	var goFiles []string
 	for _, file := range dirFiles {
@@ -304,29 +362,29 @@ func extractPackage(dirPath string) (string, error) {
 	}
 	if len(goFiles) == 0 {
 		err = errors.New("Err: No go source files were found.")
-		if err != nil {
-			return "", err
-		}
+		return "", "", err
 	}
 
-	packageNames := make(map[string]bool)
+	packageNames := make(map[string]string)
 	for _, file := range goFiles {
 		packageName, err := extractFilePackage(dirPath + file)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
-		packageNames[packageName] = true
+		packageNames[packageName] = dirPath + file
 	}
 	if len(packageNames) > 1 {
-		log.Fatal("Err: Multiple package definitions in the same directory")
+		err = errors.New("Err: Multiple package definitions in the same directory")
+		return "", "", err
 	}
 
-	var packageName string
-	for k := range packageNames {
+	var packageName, filePath string
+	for k, v := range packageNames {
 		packageName = k
+		filePath = v
 		break
 	}
-	return packageName, nil
+	return packageName, filePath, nil
 }
 
 func generateAndFmtFile(testFileName, testFileDir, fileContent string) error {
@@ -359,7 +417,7 @@ func runFile(testname, filename, testFileDir string) (string, error) {
 		stdout2 := strings.Join(stdoutLines[:len(stdoutLines)-2], "\n")
 		if len(stdout2) > 0 {
 			err = errors.New(stdout2)
-		}else{
+		} else {
 			err = errors.New(stdout)
 		}
 		return stdout, err
