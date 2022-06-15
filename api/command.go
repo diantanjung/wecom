@@ -1,13 +1,11 @@
 package api
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
@@ -176,260 +174,6 @@ type runFuncRequest struct {
 	Args     string `form:"args" binding:"required"`
 }
 
-func (server *Server) RunFunc(ctx *gin.Context) {
-	var req runFuncRequest
-	if err := ctx.ShouldBind(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
-
-	args := make(map[string]string)
-	json.Unmarshal([]byte(req.Args), &args)
-
-	fileArr := strings.Split(req.PathStr, "/")
-	fileDir := "/" + strings.Join(fileArr[:(len(fileArr)-1)], "/") + "/"
-
-	packageName, filePath, err := extractPackage(fileDir)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
-
-	paramFunc, err := extractFuncDef(filePath, fileArr[(len(fileArr)-1)])
-	fmt.Println("func param : ")
-	fmt.Println(paramFunc)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
-
-	if len(args) != len(paramFunc) {
-		err = errors.New("Not enough arguments in call to function.")
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
-
-	argsStr := ""
-	for _, v := range paramFunc {
-		fmt.Println(v)
-		value, ok := args[v]
-		if !ok {
-			err = errors.New("Not enough arguments in call to function")
-			ctx.JSON(http.StatusBadRequest, errorResponse(err))
-			return
-		}
-		if _, err := strconv.Atoi(value); err != nil {
-			argsStr += "\"" + value + "\","
-		} else {
-			argsStr += value + ","
-		}
-	}
-
-	if last := len(argsStr) - 1; last >= 0 && argsStr[last] == ',' {
-		argsStr = argsStr[:last]
-	}
-
-	functionCall := fileArr[(len(fileArr)-1)] + "(" + argsStr + ")"
-
-	fmt.Println("args string : " + argsStr)
-
-	testRandomName := randString(10)
-	testFileName := fileDir + testRandomName + "_test.go"
-	fileContent := fmt.Sprintf(templateString, packageName, testRandomName, functionCall)
-	err = generateAndFmtFile(testFileName, fileDir, fileContent)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
-	defer os.Remove(testFileName)
-
-	msg, err := runFile(testRandomName, testFileName, fileDir)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
-
-	res := commandResponse{
-		Path:    functionCall,
-		Message: msg,
-	}
-
-	ctx.JSON(http.StatusOK, res)
-}
-
-var templateString = `package %v
-import "testing"
-
-func Test_%v(t *testing.T) {
-	  %v
-}
-`
-
-func checkRemError(err error, filename string) error {
-	if err != nil {
-		os.Remove(filename)
-		return err
-	}
-	return nil
-}
-
-func randString(length int) string {
-	var ret string
-	runes := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPKRSTUVWXYZ0123456789")
-	for i := 0; i < length; i++ {
-		ret += string(runes[rand.Intn(len(runes))])
-	}
-	return ret
-}
-
-func extractFuncDef(filepath, funcName string) ([]string, error) {
-	regex := regexp.MustCompile(funcName + " *\\((.*)\\).*$")
-	fh, err := os.Open(filepath)
-	f := bufio.NewReader(fh)
-
-	if err != nil {
-		return nil, err
-	}
-	result := make([]string, 0)
-	defer fh.Close()
-
-	buf := make([]byte, 1024)
-	var matchStr = ""
-	for {
-		buf, _, err = f.ReadLine()
-		if err != nil {
-			break
-		}
-		s := string(buf)
-		match := regex.FindStringSubmatch(s)
-		if len(match) > 0 {
-			matchStr = match[1]
-		}
-	}
-
-	splitArr := strings.Split(matchStr, ",")
-	if len(splitArr) > 0 {
-		for _, v := range splitArr {
-			temp := strings.Split(strings.TrimSpace(v), " ")[0]
-			// result[temp] = ""
-			result = append(result, temp)
-		}
-
-	}
-	return result, nil
-}
-
-func extractFilePackage(filepath string) (string, error) {
-	regex, err := regexp.Compile("^ *package (.*)$")
-	if err != nil {
-		return "", err
-	}
-	fh, err := os.Open(filepath)
-	f := bufio.NewReader(fh)
-
-	if err != nil {
-		return "", err
-	}
-	defer fh.Close()
-
-	buf := make([]byte, 1024)
-	for {
-		buf, _, err = f.ReadLine()
-		if err != nil {
-			return "", errors.New("Package def in file " + filepath + " not found.")
-		}
-		s := string(buf)
-		if regex.MatchString(s) {
-			return strings.Split(string(buf), " ")[1], nil
-		}
-	}
-}
-
-func extractPackage(dirPath string) (string, string, error) {
-
-	dirFiles, err := ioutil.ReadDir(dirPath)
-	if err != nil {
-		return "", "", err
-	}
-	var goFiles []string
-	for _, file := range dirFiles {
-		if !file.IsDir() {
-			isGoFile, _ := regexp.Match("\\.go$", []byte(file.Name()))
-			if isGoFile {
-				goFiles = append(goFiles, file.Name())
-			}
-		}
-	}
-	if len(goFiles) == 0 {
-		err = errors.New("Err: No go source files were found.")
-		return "", "", err
-	}
-
-	packageNames := make(map[string]string)
-	for _, file := range goFiles {
-		packageName, err := extractFilePackage(dirPath + file)
-		if err != nil {
-			return "", "", err
-		}
-		packageNames[packageName] = dirPath + file
-	}
-	if len(packageNames) > 1 {
-		err = errors.New("Err: Multiple package definitions in the same directory")
-		return "", "", err
-	}
-
-	var packageName, filePath string
-	for k, v := range packageNames {
-		packageName = k
-		filePath = v
-		break
-	}
-	return packageName, filePath, nil
-}
-
-func generateAndFmtFile(testFileName, testFileDir, fileContent string) error {
-	err := ioutil.WriteFile(testFileName, []byte(fileContent), 0644)
-	if err != nil {
-		return err
-	}
-
-	cmd := exec.Command("goimports", "-w=true", testFileName)
-	cmd.Dir = testFileDir
-	output, err := cmd.CombinedOutput()
-	if len(output) == 0 && err != nil {
-		err = checkRemError(err, testFileName)
-		return err
-	}
-	return nil
-}
-
-func runFile(testname, filename, testFileDir string) (string, error) {
-	cmd := exec.Command("/usr/local/go/bin/go", "test", "--run", testname)
-	cmd.Dir = testFileDir
-	output, err := cmd.CombinedOutput()
-	stdout := string(output)
-	stdoutLines := strings.Split(stdout, "\n")
-	if len(output) == 0 && err != nil {
-		err = checkRemError(err, filename)
-		fmt.Println("11 : " + stdout)
-		return "", err
-	} else if err != nil {
-		stdout2 := strings.Join(stdoutLines[:len(stdoutLines)-2], "\n")
-		if len(stdout2) > 0 {
-			err = errors.New(stdout2)
-		} else {
-			err = errors.New(stdout)
-		}
-		return stdout, err
-	} else {
-		stdout3 := strings.Join(stdoutLines[:len(stdoutLines)-3], "\n")
-		if len(stdout3) > 0 {
-			stdout = stdout3
-		}
-		return stdout, err
-	}
-}
-
 type getDirFileContentRequest struct {
 	PathStr  string `json:"path_str" binding:"required"`
 	Username string `json:"username" binding:"required"`
@@ -538,5 +282,146 @@ func (server *Server) GetDirContent(ctx *gin.Context) {
 			})
 		}
 	}
+	ctx.JSON(http.StatusOK, res)
+}
+
+func (server *Server) RunFunc(ctx *gin.Context) {
+	var req runFuncRequest
+	if err := ctx.ShouldBind(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	args := make(map[string]string)
+	json.Unmarshal([]byte(req.Args), &args)
+
+	fileArr := strings.Split(req.PathStr, "/")
+	fileDir := "/" + strings.Join(fileArr[:(len(fileArr)-2)], "/") + "/"
+	filePath := "/" + strings.Join(fileArr[:(len(fileArr)-1)], "/")
+	fileName := fileArr[(len(fileArr) - 2)]
+	funcName := fileArr[(len(fileArr) - 1)]
+
+	if _, err := os.Stat(filePath); errors.Is(err, os.ErrNotExist) {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	msg := ""
+	functionCall := ""
+
+	isGoFile, _ := regexp.Match("\\.go$", []byte(filePath))
+	if isGoFile {
+		packageName, _, err := goExtractPackage(fileDir)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, errorResponse(err))
+			return
+		}
+
+		paramFunc, err := goExtractFuncDef(filePath, funcName)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, errorResponse(err))
+			return
+		}
+
+		if len(args) != len(paramFunc) {
+			err = errors.New("Not enough arguments in call to function.")
+			ctx.JSON(http.StatusBadRequest, errorResponse(err))
+			return
+		}
+
+		argsStr := ""
+		for _, v := range paramFunc {
+			value, ok := args[v]
+			if !ok {
+				err = errors.New("Not enough arguments in call to function")
+				ctx.JSON(http.StatusBadRequest, errorResponse(err))
+				return
+			}
+			if _, err := strconv.Atoi(value); err != nil {
+				argsStr += "\"" + value + "\","
+			} else {
+				argsStr += value + ","
+			}
+		}
+
+		if last := len(argsStr) - 1; last >= 0 && argsStr[last] == ',' {
+			argsStr = argsStr[:last]
+		}
+
+		functionCall = funcName + "(" + argsStr + ")"
+
+		testRandomName := randString(10)
+		testFileName := fileDir + testRandomName + "_test.go"
+		fileContent := fmt.Sprintf(templateString, packageName, testRandomName, functionCall)
+		err = goGenerateAndFmtFile(testFileName, fileDir, fileContent)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, errorResponse(err))
+			return
+		}
+		defer os.Remove(testFileName)
+
+		msg, err = goRunFile(testRandomName, testFileName, fileDir)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, errorResponse(err))
+			return
+		}
+	} else {
+		isRktFile, _ := regexp.Match("\\.rkt$", []byte(filePath))
+		if isRktFile {
+			paramFunc, err := rktGetArgs(filePath, funcName)
+			if err != nil {
+				ctx.JSON(http.StatusBadRequest, errorResponse(err))
+				return
+			}
+
+			if len(args) != len(paramFunc) {
+				err = errors.New("Not enough arguments in call to function.")
+				ctx.JSON(http.StatusBadRequest, errorResponse(err))
+				return
+			}
+
+			argsStr := ""
+			for _, v := range paramFunc {
+				value, ok := args[v]
+				if !ok {
+					err = errors.New("Not enough arguments in call to function")
+					ctx.JSON(http.StatusBadRequest, errorResponse(err))
+					return
+				}
+				if _, err := strconv.Atoi(value); err != nil {
+					argsStr += "\"" + value + "\" "
+				} else {
+					argsStr += value + " "
+				}
+			}
+
+			functionCall = funcName + " " + argsStr
+			testRandomName := randString(10)
+			testFileName := fileDir + testRandomName + ".rkt"
+			fileContent := fmt.Sprintf(rktTemplateString, fileName, functionCall)
+			err = rktGenerateFile(testFileName, fileContent)
+			if err != nil {
+				ctx.JSON(http.StatusBadRequest, errorResponse(err))
+				return
+			}
+			defer os.Remove(testFileName)
+
+			msg, err = rktRunFile(testFileName, fileDir)
+			if err != nil {
+				ctx.JSON(http.StatusBadRequest, errorResponse(err))
+				return
+			}
+		}else{
+			err := errors.New("File's not found.")
+			ctx.JSON(http.StatusBadRequest, errorResponse(err))
+			return
+		}
+	}
+
+	res := commandResponse{
+		Path:    functionCall,
+		Message: msg,
+	}
+
 	ctx.JSON(http.StatusOK, res)
 }
