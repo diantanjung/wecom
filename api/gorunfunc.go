@@ -37,7 +37,7 @@ func randString(length int) string {
 }
 
 func goExtractFuncDef(filepath, funcName string) ([]string, error) {
-	regex := regexp.MustCompile(funcName + " *\\((.*)\\).*$")
+	regex := regexp.MustCompile("func *" + funcName + " *\\((.*)\\).*$")
 	fh, err := os.Open(filepath)
 	f := bufio.NewReader(fh)
 

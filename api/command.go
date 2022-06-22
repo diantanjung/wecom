@@ -411,10 +411,69 @@ func (server *Server) RunFunc(ctx *gin.Context) {
 				ctx.JSON(http.StatusBadRequest, errorResponse(err))
 				return
 			}
-		}else{
-			err := errors.New("File's not found.")
-			ctx.JSON(http.StatusBadRequest, errorResponse(err))
-			return
+		} else {
+			isRsFile, _ := regexp.Match("\\.rs$", []byte(filePath))
+			if isRsFile {
+
+				paramFunc, err := rsGetArgs(filePath, funcName)
+				if err != nil {
+					ctx.JSON(http.StatusBadRequest, errorResponse(err))
+					return
+				}
+
+				if len(args) != len(paramFunc) {
+					err = errors.New("Not enough arguments in call to function.")
+					ctx.JSON(http.StatusBadRequest, errorResponse(err))
+					return
+				}
+
+				argsStr := ""
+				for _, v := range paramFunc {
+					value, ok := args[v]
+					if !ok {
+						err = errors.New("Not enough arguments in call to function")
+						ctx.JSON(http.StatusBadRequest, errorResponse(err))
+						return
+					}
+					if _, err := strconv.Atoi(value); err != nil {
+						argsStr += "\"" + value + "\" "
+					} else {
+						argsStr += value + ","
+					}
+				}
+
+				if last := len(argsStr) - 1; last >= 0 && argsStr[last] == ',' {
+					argsStr = argsStr[:last]
+				}
+
+				functionCall = funcName + "(" + argsStr + ")"
+				testRandomName := randString(10)
+				testFileName := fileDir + testRandomName + ".rs"
+				binName := fileName[:len(fileName)-3]
+				fileContent := fmt.Sprintf(rsTemplateString, binName, binName, functionCall)
+				err = rsGenerateFile(testFileName, fileContent)
+				if err != nil {
+					ctx.JSON(http.StatusBadRequest, errorResponse(err))
+					return
+				}
+				defer os.Remove(testFileName)
+				defer os.Remove(fileDir + testRandomName)
+
+				fmt.Println("testFileName : " + testFileName)
+				fmt.Println("testRandomName : " + testRandomName)
+
+				msg, err = rsRunFile(testFileName, testRandomName, fileDir)
+				if err != nil {
+					ctx.JSON(http.StatusBadRequest, errorResponse(err))
+					return
+				}
+
+			} else {
+				err := errors.New("File's not found.")
+				ctx.JSON(http.StatusBadRequest, errorResponse(err))
+				return
+			}
+
 		}
 	}
 
