@@ -8,15 +8,19 @@ import (
 )
 
 type Config struct {
-	DBHost            string
-	DBDriver          string
-	DBUser            string
-	DBPassword        string
-	DBName            string
-	DBPort            string
-	BaseUrl           string
-	TokenSymmetricKey string
-	FeUrl             string
+	DBHost             string
+	DBDriver           string
+	DBUser             string
+	DBPassword         string
+	DBName             string
+	DBPort             string
+	BaseUrl            string
+	TokenSymmetricKey  string
+	FeUrl              string
+	GoogleClientId     string
+	GoogleClientSecret string
+	GithubClientId     string
+	GithubClientSecret string
 }
 
 func LoadConfig(path string) (config Config, err error) {
@@ -35,6 +39,10 @@ func LoadConfig(path string) (config Config, err error) {
 	config.BaseUrl = os.Getenv("BASE_URL")
 	config.TokenSymmetricKey = os.Getenv("TOKEN_SYMMETRIC_KEY")
 	config.FeUrl = os.Getenv("FE_URL")
+	config.GoogleClientId = os.Getenv("GOOGLE_CLIENT_ID")
+	config.GoogleClientSecret = os.Getenv("GOOGLE_CLIENT_SECRET")
+	config.GithubClientId = os.Getenv("GITHUB_CLIENT_ID")
+	config.GithubClientSecret = os.Getenv("GITHUB_CLIENT_SECRET")
 
 	return
 }

@@ -54,6 +54,7 @@ func (server *Server) setupRouter() {
 	router.Use(server.CORSMiddleware())
 
 	router.POST("/users/login-google", server.loginGoogle)
+	router.POST("/users/login-github", server.loginGithub)
 	router.GET("/ws2/:username", server.WebSocket2)
 
 	router.POST("/run", server.RunCommand)
