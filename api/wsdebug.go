@@ -5,7 +5,6 @@ import (
 	"flag"
 	"io"
 	"log"
-	"net/http"
 	"os"
 	"os/exec"
 	"time"
@@ -95,19 +94,46 @@ func internalError(ws *websocket.Conn, msg string, err error) {
 
 func (server *Server) WsDebug(ctx *gin.Context) {
 	//var upgrader = websocket.Upgrader{}
-	upgrader := websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-		// Resolve cross-domain problems
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
+	// upgrader := websocket.Upgrader{
+	// 	ReadBufferSize:  1024,
+	// 	WriteBufferSize: 1024,
+	// 	// Resolve cross-domain problems
+	// 	CheckOrigin: func(r *http.Request) bool {
+	// 		return true
+	// 	},
+	// }
+	opts := HandlerOpts{
+		AllowedHostnames:     []string{"localhost", "bilang.io"},
+		Arguments:            []string{},
+		Command:              "/bin/bash",
+		ConnectionErrorLimit: 10,
+		KeepalivePingTimeout: 20,
+		MaxBufferSizeBytes:   512,
 	}
+
+	connectionErrorLimit := opts.ConnectionErrorLimit
+	if connectionErrorLimit < 0 {
+		connectionErrorLimit = DefaultConnectionErrorLimit
+	}
+	maxBufferSizeBytes := opts.MaxBufferSizeBytes
+	keepalivePingTimeout := opts.KeepalivePingTimeout
+	if keepalivePingTimeout <= time.Second {
+		keepalivePingTimeout = 20 * time.Second
+	}
+
+	allowedHostnames := opts.AllowedHostnames
+	upgrader := getConnectionUpgrader(allowedHostnames, maxBufferSizeBytes)
 	ws, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
-		log.Println("upgrade:", err)
+		log.Println("failed to upgrade connection: %s", err)
 		return
 	}
+
+	// ws, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
+	// if err != nil {
+	// 	log.Println("upgrade:", err)
+	// 	return
+	// }
 
 	defer ws.Close()
 
@@ -132,7 +158,7 @@ func (server *Server) WsDebug(ctx *gin.Context) {
 		internalError(ws, "lookPath:", err)
 		return
 	}
-	
+
 	proc, err := os.StartProcess(cmdPath, flag.Args(), &os.ProcAttr{
 		//Dir: wDir,
 		Files: []*os.File{inr, outw, outw},
