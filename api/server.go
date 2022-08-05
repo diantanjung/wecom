@@ -56,6 +56,7 @@ func (server *Server) setupRouter() {
 	router.POST("/users/login-google", server.loginGoogle)
 	router.POST("/users/login-github", server.loginGithub)
 	router.GET("/ws2/:username", server.WebSocket2)
+	router.GET("/wsdebug", server.WsDebug)
 
 	router.POST("/run", server.RunCommand)
 	router.GET("/runfunc", server.RunFunc)
