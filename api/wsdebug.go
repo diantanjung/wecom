@@ -108,7 +108,7 @@ func (server *Server) WsDebug(ctx *gin.Context) {
 		Command:              "/bin/bash",
 		ConnectionErrorLimit: 10,
 		KeepalivePingTimeout: 20,
-		MaxBufferSizeBytes:   512,
+		MaxBufferSizeBytes:   1024,
 	}
 
 	connectionErrorLimit := opts.ConnectionErrorLimit
