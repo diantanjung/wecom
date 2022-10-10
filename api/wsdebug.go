@@ -33,6 +33,7 @@ const (
 //var username = "";
 //var curPath = "";
 
+// read message from frontend
 func (server *Server) pumpStdin(ws *websocket.Conn, w io.Writer) {
 	defer ws.Close()
 	ws.SetReadLimit(maxMessageSize)

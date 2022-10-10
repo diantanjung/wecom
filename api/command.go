@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -183,6 +184,9 @@ type getDirFileContentResponse struct {
 	IsDir   bool         `json:"is_dir"`
 	FileStr string       `json:"file_str"`
 	DirList []dirContent `json:"dir_list"`
+	Filepath string `json:"filepath"`
+	Dirpath string `json:"dirpath"`
+	Language string `json:"language"`
 }
 
 func (server *Server) GetDirFileContent(ctx *gin.Context) {
@@ -235,7 +239,8 @@ func (server *Server) GetDirFileContent(ctx *gin.Context) {
 		}
 		res.IsDir = true
 		res.DirList = dirList
-
+		res.Filepath = filePath
+		res.Dirpath = filePath
 	} else {
 		fileString, err := ioutil.ReadFile(filePath)
 		if err != nil {
@@ -244,6 +249,18 @@ func (server *Server) GetDirFileContent(ctx *gin.Context) {
 		}
 		res.IsDir = false
 		res.FileStr = strings.Trim(string(fileString), " ")
+		res.Filepath, err = filepath.Abs(filePath)
+		res.Dirpath = filepath.Dir(filePath)
+		ext := filepath.Ext(filePath)
+		if ext == ".go" {
+			res.Language = "go"
+		}else if ext == ".rkt"{
+			res.Language = "racket"
+		}else if ext == ".rs"{
+			res.Language = "rust"
+		}else{
+			res.Language = "go"
+		}
 	}
 	ctx.JSON(http.StatusOK, res)
 }
