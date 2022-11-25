@@ -95,7 +95,7 @@ func internalError(ws *websocket.Conn, msg string, err error) {
 
 func (server *Server) WsDebug(ctx *gin.Context) {
 	opts := HandlerOpts{
-		AllowedHostnames:     []string{"localhost", "bilang.io"},
+		AllowedHostnames:     []string{"localhost", server.config.DomainName},
 		Arguments:            []string{},
 		Command:              "/bin/bash",
 		ConnectionErrorLimit: 10,

@@ -21,6 +21,7 @@ type Config struct {
 	GoogleClientSecret string
 	GithubClientId     string
 	GithubClientSecret string
+	DomainName string
 }
 
 func LoadConfig(path string) (config Config, err error) {
@@ -43,6 +44,7 @@ func LoadConfig(path string) (config Config, err error) {
 	config.GoogleClientSecret = os.Getenv("GOOGLE_CLIENT_SECRET")
 	config.GithubClientId = os.Getenv("GITHUB_CLIENT_ID")
 	config.GithubClientSecret = os.Getenv("GITHUB_CLIENT_SECRET")
+	config.DomainName = os.Getenv("DOMAIN_NAME")
 
 	return
 }
