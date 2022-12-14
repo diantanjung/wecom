@@ -64,6 +64,7 @@ func (server *Server) setupRouter() {
 	// for guest
 	router.POST("/gopendirfile", server.GetDirFileContent)
 	router.POST("/gopendir", server.GetDirContent)
+	router.POST("/grungodef", server.RunGodef)
 
 	router.PATCH("/open", server.UpdateFileContent)
 
@@ -74,6 +75,7 @@ func (server *Server) setupRouter() {
 
 	authRoutes.POST("/opendirfile", server.GetDirFileContent)
 	authRoutes.POST("/opendir", server.GetDirContent)
+	authRoutes.POST("/rungodef", server.RunGodef)
 
 	server.router = router
 }
