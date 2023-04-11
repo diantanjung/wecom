@@ -104,6 +104,11 @@ func (server *Server) loginGoogle(ctx *gin.Context) {
 			defer file.Close()
 			file.WriteString("source ~/.powerlevel10k/powerlevel10k.zsh-theme\nalias ls='colorls'\nalias logout='quit'\nsudo (){echo sudo: command not found}\nexport PATH=$PATH:/usr/local/go/bin\n[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh\nexport RUSTUP_HOME=/nfs/rust/rustup\nexport PATH=${PATH}:/nfs/rust/cargo/bin\nexport PATH=${PATH}:/usr/racket/bin")
 
+			//Append powerlevel theme setting
+			filep10k, _ := os.OpenFile("/home/"+username+"/.p10k.zsh", os.O_APPEND|os.O_WRONLY, 0644)
+			defer filep10k.Close()
+			filep10k.WriteString("\ntypeset -g POWERLEVEL9K_OS_ICON_CONTENT_EXPANSION=$'\uF17c'\ntypeset -g POWERLEVEL9K_TIME_VISUAL_IDENTIFIER_EXPANSION='◔'")
+
 			exec.Command("usermod", "--shell", "/usr/bin/zsh", username).Run()
 
 			// delete rust
