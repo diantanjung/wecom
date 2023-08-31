@@ -181,12 +181,12 @@ type getDirFileContentRequest struct {
 }
 
 type getDirFileContentResponse struct {
-	IsDir   bool         `json:"is_dir"`
-	FileStr string       `json:"file_str"`
-	DirList []dirContent `json:"dir_list"`
-	Filepath string `json:"filepath"`
-	Dirpath string `json:"dirpath"`
-	Language string `json:"language"`
+	IsDir    bool         `json:"is_dir"`
+	FileStr  string       `json:"file_str"`
+	DirList  []dirContent `json:"dir_list"`
+	Filepath string       `json:"filepath"`
+	Dirpath  string       `json:"dirpath"`
+	Language string       `json:"language"`
 }
 
 func (server *Server) GetDirFileContent(ctx *gin.Context) {
@@ -254,11 +254,11 @@ func (server *Server) GetDirFileContent(ctx *gin.Context) {
 		ext := filepath.Ext(filePath)
 		if ext == ".go" {
 			res.Language = "go"
-		}else if ext == ".rkt"{
+		} else if ext == ".rkt" {
 			res.Language = "racket"
-		}else if ext == ".rs"{
+		} else if ext == ".rs" {
 			res.Language = "rust"
-		}else{
+		} else {
 			res.Language = "go"
 		}
 	}
@@ -300,6 +300,61 @@ func (server *Server) GetDirContent(ctx *gin.Context) {
 		}
 	}
 	ctx.JSON(http.StatusOK, res)
+}
+
+type getAllFilesRequest struct {
+	PathStr string `json:"path_str" binding:"required"`
+	Term string `json:"term"`
+}
+
+type getAllFilesResponse struct {
+	Filename string `json:"filename"`
+	IsDir    bool   `json:"isdir"`
+	Size     int64  `json:"size"`
+	Path     string `json:"path"`
+	ModTime  string `json:"mod_time"`
+}
+
+func (server *Server) GetAllFiles(ctx *gin.Context) {
+	var req getAllFilesRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+
+	// directory path
+	dirPath := "/" + req.PathStr
+	var res []getAllFilesResponse
+	const layoutTime = "2006-01-02 15:04:05"
+
+	err := filepath.Walk(dirPath,
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			}
+			regex := regexp.MustCompile(`/\.`)
+			regexTerm := regexp.MustCompile(req.Term)
+			if !info.IsDir() && !regex.MatchString(path) && regexTerm.MatchString(info.Name()) {
+				res = append(res, getAllFilesResponse{
+					Filename: info.Name(),
+					IsDir:    info.IsDir(),
+					Size:     info.Size(),
+					Path:     path,
+					ModTime:  info.ModTime().Format(layoutTime),
+				})
+			}
+
+			return nil
+
+		})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+	}
+
+	ctx.JSON(http.StatusOK, res)
+
 }
 
 func (server *Server) RunFunc(ctx *gin.Context) {
