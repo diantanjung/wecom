@@ -319,20 +319,21 @@ func (server *Server) GetCodebase(ctx *gin.Context) {
 					langfile = "racket"
 				} else if ext == ".rs" {
 					langfile = "rust"
-				} else {
-					langfile = "go"
 				}
 
-				res = append(res, getCodebaseResponse{
-					Filename: info.Name(),
-					IsDir:    info.IsDir(),
-					Size:     info.Size(),
-					Filepath: path,
-					ModTime:  info.ModTime().Format(layoutTime),
-					FileStr: strings.Trim(string(fileString), " "),
-					Dirpath: filepath.Dir(path),
-					Language: langfile,
-				})
+				if langfile != "" {
+					res = append(res, getCodebaseResponse{
+						Filename: info.Name(),
+						IsDir:    info.IsDir(),
+						Size:     info.Size(),
+						Filepath: path,
+						ModTime:  info.ModTime().Format(layoutTime),
+						FileStr: strings.Trim(string(fileString), " "),
+						Dirpath: filepath.Dir(path),
+						Language: langfile,
+					})
+				}
+				
 			}
 			if len(res) >= limitFiles {
 				return filepath.SkipAll
