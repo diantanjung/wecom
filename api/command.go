@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -322,16 +323,22 @@ func (server *Server) GetCodebase(ctx *gin.Context) {
 				}
 
 				if langfile != "" {
-					res = append(res, getCodebaseResponse{
-						Filename: info.Name(),
-						IsDir:    info.IsDir(),
-						Size:     info.Size(),
-						Filepath: path,
-						ModTime:  info.ModTime().Format(layoutTime),
-						FileStr: strings.Trim(string(fileString), " "),
-						Dirpath: filepath.Dir(path),
-						Language: langfile,
-					})
+					// list of ignored path
+					ingnorePath := []string{"go/bin", "go/pkg", "vendor"}
+					if !slices.ContainsFunc(ingnorePath, func(n string) bool {
+						return strings.Contains(path, n)
+					}) {
+						res = append(res, getCodebaseResponse{
+							Filename: info.Name(),
+							IsDir:    info.IsDir(),
+							Size:     info.Size(),
+							Filepath: path,
+							ModTime:  info.ModTime().Format(layoutTime),
+							FileStr: strings.Trim(string(fileString), " "),
+							Dirpath: filepath.Dir(path),
+							Language: langfile,
+						})
+					}
 				}
 				
 			}
